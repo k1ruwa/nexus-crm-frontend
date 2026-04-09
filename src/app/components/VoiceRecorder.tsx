@@ -3,7 +3,7 @@ import { Mic, Play, Pause, Trash2, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface VoiceRecorderProps {
-  onRecordingComplete: (audioBlob: Blob, duration: number) => void;
+  onRecordingComplete: (audioBlob: Blob, duration: number, transcript?: string) => void;
   title?: string;
 }
 
@@ -17,6 +17,9 @@ export function VoiceRecorder({ onRecordingComplete, title = 'Voice Recorder' }:
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
 
   const startRecording = async () => {
     try {
@@ -24,6 +27,7 @@ export function VoiceRecorder({ onRecordingComplete, title = 'Voice Recorder' }:
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      transcriptRef.current = '';
 
       mediaRecorder.ondataavailable = (event) => {
         audioChunksRef.current.push(event.data);
@@ -44,6 +48,26 @@ export function VoiceRecorder({ onRecordingComplete, title = 'Voice Recorder' }:
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
+
+      // Start Web Speech API transcription in parallel (no API key needed)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        recognition.onresult = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              transcriptRef.current += e.results[i][0].transcript + ' ';
+            }
+          }
+        };
+        recognition.onerror = () => { /* silently ignore — transcript will be empty */ };
+        try { recognition.start(); } catch { /* recognition may not be available */ }
+        recognitionRef.current = recognition;
+      }
     } catch (err) {
       console.error('Error accessing microphone:', err);
     }
@@ -55,6 +79,7 @@ export function VoiceRecorder({ onRecordingComplete, title = 'Voice Recorder' }:
       setIsRecording(false);
       setIsPaused(false);
       if (timerRef.current) clearInterval(timerRef.current);
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
     }
   };
 
@@ -65,9 +90,11 @@ export function VoiceRecorder({ onRecordingComplete, title = 'Voice Recorder' }:
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
+      try { recognitionRef.current?.start(); } catch { /* ignore */ }
     } else {
       mediaRecorderRef.current.pause();
       if (timerRef.current) clearInterval(timerRef.current);
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
     }
     setIsPaused(!isPaused);
   };
@@ -77,12 +104,13 @@ export function VoiceRecorder({ onRecordingComplete, title = 'Voice Recorder' }:
     setDuration(0);
     setRecordingTime(0);
     audioChunksRef.current = [];
+    transcriptRef.current = '';
   };
 
   const handleSave = () => {
     if (audioChunksRef.current.length > 0) {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      onRecordingComplete(audioBlob, duration);
+      onRecordingComplete(audioBlob, duration, transcriptRef.current.trim() || undefined);
       deleteRecording();
     }
   };

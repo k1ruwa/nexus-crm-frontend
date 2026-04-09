@@ -47,21 +47,28 @@ export default function AddContact() {
     }
   };
 
-  const handleVoiceRecording = async (audioBlob: Blob, duration: number) => {
+  const handleVoiceRecording = async (audioBlob: Blob, duration: number, transcript?: string) => {
     setShowVoiceRecorder(false);
     setMode('voice');
     setIsProcessing(true);
     try {
-      toast.info('Transcribing...', { duration: 2000 });
-      const transcript = await transcribeAudio(audioBlob);
+      // Use transcript from Web Speech API if available, otherwise fall back to API
+      const text = transcript?.trim() || await transcribeAudio(audioBlob);
+      if (!text) {
+        toast.error('Could not capture speech — try again');
+        return;
+      }
       toast.info('Extracting contact info...', { duration: 2000 });
-      const enrichedData = await enrichFromVoiceTranscript(transcript);
+      const enrichedData = await enrichFromVoiceTranscript(text);
       setFormData(prev => ({
         ...prev,
         name: enrichedData.name || prev.name,
         email: enrichedData.email || prev.email,
         phone: enrichedData.phone || prev.phone,
+        company: enrichedData.company || prev.company,
+        title: enrichedData.title || prev.title,
         notes: enrichedData.notes || prev.notes,
+        tags: enrichedData.tags ? enrichedData.tags.join(', ') : prev.tags,
       }));
       toast.success('Voice note processed!');
     } catch {

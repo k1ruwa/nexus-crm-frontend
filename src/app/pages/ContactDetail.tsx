@@ -40,16 +40,16 @@ export default function ContactDetail() {
     setReminders(list.sort((a, b) => a.dueDate - b.dueDate));
   };
 
-  const handleVoiceNote = async (audioBlob: Blob, duration: number) => {
+  const handleVoiceNote = async (audioBlob: Blob, duration: number, transcript?: string) => {
     if (!contact) return;
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
-      toast.info('Transcribing...', { duration: 2000 });
-      const transcript = await transcribeAudio(audioBlob);
+      // Use transcript from Web Speech API if available, otherwise fall back to API
+      const text = transcript?.trim() || await transcribeAudio(audioBlob);
       const voiceNote: VoiceNote = {
         id: crypto.randomUUID(), contactId: contact.id,
-        audioBlob: reader.result as string, transcript, duration, createdAt: Date.now(),
+        audioBlob: reader.result as string, transcript: text, duration, createdAt: Date.now(),
       };
       await addVoiceNote(voiceNote);
       await loadVoiceNotes(contact.id);
