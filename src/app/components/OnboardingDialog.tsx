@@ -144,7 +144,7 @@ export function OnboardingDialog() {
                   {/* Header */}
                   <div className="text-center mb-6">
                     <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600">Welcome to</span>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900 mt-1">Nexus</h2>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900 mt-1">Neco</h2>
                     <p className="text-[13px] text-slate-500 mt-2">Sign in to get started</p>
                   </div>
 

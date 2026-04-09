@@ -80,12 +80,21 @@ export default function AddContact() {
     try {
       toast.info('Enriching profile...', { duration: 2000 });
       const enrichedData = await enrichProfile(formData.email, formData.name);
+      const hasData = !!(enrichedData.linkedIn || enrichedData.twitter || enrichedData.website ||
+                         enrichedData.company || enrichedData.title || enrichedData.notes);
+      if (!hasData) {
+        toast.error('Could not find info for this person');
+        return;
+      }
       setFormData(prev => ({
         ...prev,
         linkedIn: enrichedData.linkedIn || prev.linkedIn,
         twitter: enrichedData.twitter || prev.twitter,
+        website: enrichedData.website || prev.website,
         company: enrichedData.company || prev.company,
         title: enrichedData.title || prev.title,
+        notes: enrichedData.notes || prev.notes,
+        tags: enrichedData.tags ? enrichedData.tags.join(', ') : prev.tags,
       }));
       toast.success('Profile enriched with AI!');
     } catch {

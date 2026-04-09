@@ -48,7 +48,7 @@ export function InstallPrompt() {
               <Download className="h-5 w-5 text-emerald-500" />
             </div>
             <div className="flex-1">
-              <h3 className="text-[15px] font-semibold text-slate-800">Install Nexus</h3>
+              <h3 className="text-[15px] font-semibold text-slate-800">Install Neco</h3>
               <p className="text-[12px] text-slate-500 mt-0.5 mb-3">
                 Add to home screen for offline access
               </p>
